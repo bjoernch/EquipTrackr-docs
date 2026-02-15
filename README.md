@@ -791,15 +791,32 @@ Liefert kompakte Betriebsmetriken:
 - E-Mail-Fehler 24h/7d
 - erfolgreiche Reminder-/Cleanup-Runs (7d)
 
-### 24.7 Backup/Restore-Skripte
+### 24.7 Lokale Backups (verschlüsselt)
 
-Neue Skripte:
-- `scripts/backup.sh`
-- `scripts/restore-test.sh`
+Super-Admin API:
+- `GET /api/admin/backups` (Liste)
+- `POST /api/admin/backups` (Backup erstellen)
+- `GET /api/admin/backups/[fileName]` (Download)
+- `DELETE /api/admin/backups/[fileName]` (Löschen)
 
-NPM-Wrapper:
-- `npm run backup:create -- ./backups`
-- `npm run backup:restore-test -- ./backups/<timestamp> <postgres-url>`
+Super-Admin UI:
+- Bereich `Backups` in `/super-admin`
+- Erstellung, Download und Löschung lokaler Backups
+
+Format:
+- Dateiendung: `.etbk`
+- Inhalt: konsistenter `pg_dump` + lokales Storage-Archiv (`LOCAL_DOCUMENT_DIR`) + `manifest.json`
+- gesamte Payload wird verschlüsselt gespeichert
+
+Verschlüsselung:
+- Algorithmus: `AES-256-GCM`
+- Schlüsselableitung: `scrypt` aus `BACKUP_ENCRYPTION_PASSPHRASE`
+- pro Backup zufällige `salt` (16 Byte) und `iv` (12 Byte)
+- Authentizität über GCM-Tag
+
+Wichtige ENV:
+- `BACKUP_LOCAL_DIR` (Default `/data/backups`)
+- `BACKUP_ENCRYPTION_PASSPHRASE` (min. 16 Zeichen, Pflicht für Backup-Erstellung)
 
 Hinweis:
-- Backup umfasst Postgres-Dump plus Dokument-Archiv (lokaler Storage).
+- In `DEMO_MODE=true` sind Backup-Schreibaktionen gesperrt (read-only).

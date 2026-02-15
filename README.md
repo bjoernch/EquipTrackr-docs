@@ -1,17 +1,17 @@
 # EquipTrackr - Gesamtdokumentation
 
-Diese Dokumentation ist die verbindliche Referenz fuer das gesamte System (Desktop-App, PWA, API, Sicherheit, Betrieb).
+Diese Dokumentation ist die verbindliche Referenz für das gesamte System (Desktop-App, PWA, API, Sicherheit, Betrieb).
 
-## 1. Produktueberblick
+## 1. Produktüberblick
 
-EquipTrackr ist eine produktionsreife Ausleih- und Inventar-Webapp fuer Geraeteparks mit klar getrennter Bedienlogik:
-- Desktop-Hauptsystem fuer Verwaltung, Planung, Ausleih-Setup, Reporting und Administration
-- Touch-optimierte PWA fuer operative Prozesse (QR-Scan, Signatur, Rueckgabe)
+EquipTrackr ist eine produktionsreife Ausleih- und Inventar-Webapp für Geräteparks mit klar getrennter Bedienlogik:
+- Desktop-Hauptsystem für Verwaltung, Planung, Ausleih-Setup, Reporting und Administration
+- Touch-optimierte PWA für operative Prozesse (QR-Scan, Signatur, Rückgabe)
 
 Kernziele:
 - Revisionssichere Ausleihen mit Dokumentation
-- Schneller operativer Checkout per Mobilgeraet
-- Nachvollziehbarkeit je Einzelgeraet (unique InventoryTag/Seriennummer)
+- Schneller operativer Checkout per Mobilgerät
+- Nachvollziehbarkeit je Einzelgerät (unique InventoryTag/Seriennummer)
 - Rollenbasiertes Sicherheitsmodell
 
 ---
@@ -31,8 +31,8 @@ Kernziele:
   - lokal (`/data/documents`) oder
   - S3-kompatibel
 
-### 2.2 Fuehrendes System
-Das Desktop-System ist fachlich fuehrend:
+### 2.2 Führendes System
+Das Desktop-System ist fachlich führend:
 - Ausleihrahmen wird dort erstellt (Kunde, Zeitraum, geplanter Inhalt)
 - PWA arbeitet auf tokenbasierter Session gegen dieselben Serverdaten
 
@@ -47,19 +47,19 @@ flowchart LR
     D2["Super-Admin<br/>SMTP, Templates, Auth-Provider, Security, Jobs"]
     D3["Account Security<br/>2FA E-Mail/TOTP, Passkeys, Session-Management"]
     M1["PWA Ausleihe<br/>Setup-QR, Artikelscan, Signatur, Abschluss"]
-    M2["PWA Rueckgabe<br/>Rueckgabe-QR, Scan, Teil-/Vollrueckgabe"]
-    S1["Interner/Oeffentlicher Shop<br/>Katalog, Verfuegbarkeit, Reservierungsanfrage"]
+    M2["PWA Rückgabe<br/>Rückgabe-QR, Scan, Teil-/Vollrückgabe"]
+    S1["Interner/Öffentlicher Shop<br/>Katalog, Verfügbarkeit, Reservierungsanfrage"]
     DM["Demo Session Manager<br/>aktive Sessions, IP, E-Mail, per-User Reset"]
   end
 
   subgraph Backend["Next.js Backend (API + Business-Logik)"]
     A1["Auth Layer<br/>Internal + OIDC/LDAP/SAML + RBAC + 2FA"]
-    A2["Loan Engine<br/>Verfuegbarkeit, Session-Token, Konfliktpruefung"]
+    A2["Loan Engine<br/>Verfügbarkeit, Session-Token, Konfliktprüfung"]
     A3["Reservation Engine<br/>Pending/Confirmed/PickedUp + Pickup-Start"]
     A4["Scan Engine<br/>QR Parse, Dedup, Not-Available Handling, Spontan-Add Confirm"]
     A5["Signature + PDF Engine<br/>Signatur, Vertragsdaten, PDF Generierung"]
     A6["Document Access<br/>Hash Verify, ACL, Download/Preview"]
-    A7["Mail Engine<br/>Reminder, Mahnung, Reservierung, Rueckgabe, Vertragsmail"]
+    A7["Mail Engine<br/>Reminder, Mahnung, Reservierung, Rückgabe, Vertragsmail"]
     A8["Cron Jobs<br/>Reminder 48h/24h, Dunning, Cleanup, Morning Digest"]
     A9["Audit + Security<br/>Audit Hash-Chain, Rate Limit, Demo-Isolation"]
   end
@@ -104,12 +104,12 @@ flowchart LR
 ```mermaid
 flowchart TD
   START["Start"] --> RES["Reservierung oder Ausleihe anlegen (Desktop)"]
-  RES --> AV["Verfuegbarkeit im Zeitraum pruefen (Kalender + Regeln)"]
-  AV -->|nicht verfuegbar| BLOCK["Blocker anzeigen, keine Ueberbuchung"]
+  RES --> AV["Verfügbarkeit im Zeitraum prüfen (Kalender + Regeln)"]
+  AV -->|nicht verfügbar| BLOCK["Blocker anzeigen, keine Überbuchung"]
   BLOCK --> RES
-  AV -->|verfuegbar| PICK["Pickup-Modus waehlen: PWA oder Desktop-only"]
+  AV -->|verfügbar| PICK["Pickup-Modus wählen: PWA oder Desktop-only"]
 
-  PICK -->|PWA| QRS["Setup-QR / Deep-Link fuer Session"]
+  PICK -->|PWA| QRS["Setup-QR / Deep-Link für Session"]
   QRS --> PWALOG["PWA Session Start"]
   PWALOG --> SCAN["Artikel scannen (inkl. Dedup + Not-Available Feedback)"]
   SCAN --> LIVE["Live-Sync mit Desktop (SSE/Poll)"]
@@ -119,19 +119,19 @@ flowchart TD
   MAIL --> ACTIVE["Ausleihe aktiv"]
 
   PICK -->|Desktop-only| DSCAN["Desktop Checkout + optional Printout"]
-  DSCAN --> DPDF["PDF/Vertragsuebersicht erzeugen"]
+  DSCAN --> DPDF["PDF/Vertragsübersicht erzeugen"]
   DPDF --> ACTIVE
 
-  ACTIVE --> EXT["Verlaengerung pruefen (Live-Verfuegbarkeit)"]
+  ACTIVE --> EXT["Verlängerung prüfen (Live-Verfügbarkeit)"]
   EXT -->|ok| ACTIVE
-  EXT -->|nicht moeglich| ACTIVE
+  EXT -->|nicht möglich| ACTIVE
 
-  ACTIVE --> RETURN["Rueckgabe starten (PWA oder Desktop)"]
-  RETURN --> RSCAN["Rueckgabe-Scan (Teil-/Vollrueckgabe)"]
+  ACTIVE --> RETURN["Rückgabe starten (PWA oder Desktop)"]
+  RETURN --> RSCAN["Rückgabe-Scan (Teil-/Vollrückgabe)"]
   RSCAN --> DONE{"Alles retourniert?"}
-  DONE -->|Nein| PART["Teilrueckgabe abschliessen"]
+  DONE -->|Nein| PART["Teilrückgabe abschliessen"]
   PART --> ACTIVE
-  DONE -->|Ja| CLOSE["Rueckgabe final + optional Rueckgabe-Mail"]
+  DONE -->|Ja| CLOSE["Rückgabe final + optional Rückgabe-Mail"]
   CLOSE --> END["Abgeschlossen"]
 
   ACTIVE --> JOBS["Automationen parallel: Reminder, Mahnung, Cleanup, Morning Digest"]
@@ -162,12 +162,12 @@ flowchart LR
 Systemrollen:
 - `ADMIN`: volle Fachverwaltung
 - `MANAGER`: operative Verwaltung (ohne globale Admin/Super-Admin-Einstellungen)
-- `OPERATOR`: operative Ausleihe/Rueckgabe (Desktop + PWA-Flow)
-- `USER`: interner Shop-Zugriff fuer Reservierungsanfragen + Kontosicherheit
+- `OPERATOR`: operative Ausleihe/Rückgabe (Desktop + PWA-Flow)
+- `USER`: interner Shop-Zugriff für Reservierungsanfragen + Kontosicherheit
 
 Hinweis `SUPER_ADMIN`:
 - Es gibt keine separate DB-Rolle `SUPER_ADMIN`.
-- Super-Admin ist eine **erweiterte Faehigkeit** fuer bestimmte `ADMIN`-Konten (z. B. definierte Usernamen), geprueft ueber `isSuperAdminUser`.
+- Super-Admin ist eine **erweiterte Fähigkeit** für bestimmte `ADMIN`-Konten (z. B. definierte Usernamen), geprüft über `isSuperAdminUser`.
 
 ### 3.2 Sichtbarkeit und Zugriff (Desktop)
 
@@ -195,15 +195,15 @@ Hinweis `SUPER_ADMIN`:
 ### 3.4 Shop-Auth-Verhalten
 
 - **Eingeloggte interne Nutzer**: Shop ohne OTP (serverseitiger Session-Bootstrap).
-- **Oeffentlicher Shop-Zugang**: OTP-Verifikation weiterhin aktiv.
+- **Öffentlicher Shop-Zugang**: OTP-Verifikation weiterhin aktiv.
 
 ### 3.5 Durchsetzung
 
 Die Berechtigungen werden mehrfach durchgesetzt:
-- Navigation pro Rolle (sichtbare Menues)
-- zentrale Routenpruefung in `src/proxy.ts` (kein URL-Bypass)
-- serverseitige API-Autorisierung ueber `requireRole(...)`
-- tokenisierte PWA-Endpunkte mit eigener Token-/Statuspruefung
+- Navigation pro Rolle (sichtbare Menüs)
+- zentrale Routenprüfung in `src/proxy.ts` (kein URL-Bypass)
+- serverseitige API-Autorisierung über `requireRole(...)`
+- tokenisierte PWA-Endpunkte mit eigener Token-/Statusprüfung
 
 ---
 
@@ -212,9 +212,9 @@ Die Berechtigungen werden mehrfach durchgesetzt:
 ### 4.1 Dashboard
 Pfad: `/dashboard`
 
-Enthaelt u. a.:
+Enthält u. a.:
 - aktive Ausleihen
-- ueberfaellige Ausleihen
+- überfällige Ausleihen
 - operative Kennzahlen
 - Statuskarten und Schnellnavigation
 
@@ -226,33 +226,33 @@ Pfade:
 - `/customers`
 
 Funktionen:
-- vollstaendige CRUD-Operationen
-- Filter-/Suchfunktionen fuer groessere Datenmengen
+- vollständige CRUD-Operationen
+- Filter-/Suchfunktionen für größere Datenmengen
 - automatische Generierung eindeutiger Inventar-Tags bei Neuerfassung
-- artikelbezogene Detailseite pro Objekt (`/articles/[id]`) fuer erweitertes Editing
-- technischer Lifecycle-Status je Geraet:
-  - `Verfuegbar`
+- artikelbezogene Detailseite pro Objekt (`/articles/[id]`) für erweitertes Editing
+- technischer Lifecycle-Status je Gerät:
+  - `Verfügbar`
   - `Defekt`
   - `In Reparatur`
   - `Ausgemustert`
 - Lifecycle-Status steuert die Ausleihbarkeit serverseitig:
-  - nicht `Verfuegbar` => automatisch nicht ausleihbar/reservierbar/scannbar
+  - nicht `Verfügbar` => automatisch nicht ausleihbar/reservierbar/scannbar
 - Bildgalerie je Artikel (mehrere Bilder), inkl. web-optimiertem Upload
 
 ### 4.3 Ausleihen
 Pfade:
 - `/loan-create` (Ausleihe anlegen/planen)
-- `/loans` (Ausleihuebersicht, Details, Status)
+- `/loans` (Ausleihübersicht, Details, Status)
 
 Wichtige Funktionen:
 - Ausleihzeitraum mit Von/Bis
-- Verfuegbarkeitspruefung im Zeitraum
-- Geraetekalender pro Artikel (Detailansicht) mit Tagesmarkierung:
-  - gruen = frei
-  - rot = belegt/nicht verfuegbar
-  - inkl. belegender Zeitraeume aus Ausleihen, aktiven Ausleih-Sessions und Reservierungen
-- Artikelplanung und Session-QR fuer PWA
-- Desktop-only Abschluss als Alternative moeglich
+- Verfügbarkeitsprüfung im Zeitraum
+- Gerätekalender pro Artikel (Detailansicht) mit Tagesmarkierung:
+  - grün = frei
+  - rot = belegt/nicht verfügbar
+  - inkl. belegender Zeiträume aus Ausleihen, aktiven Ausleih-Sessions und Reservierungen
+- Artikelplanung und Session-QR für PWA
+- Desktop-only Abschluss als Alternative möglich
 - In der Detailansicht von `/loans`:
   - Verlängerung per interaktivem Kalenderfeld (`datetime-local`) mit Live-Verfügbarkeitsprüfung
   - Sofortige Blockeranzeige, wenn Verlängerung im Zielzeitraum nicht möglich ist (inkl. betroffener Artikel)
@@ -263,14 +263,14 @@ Pfad: `/documents`
 
 Funktionen:
 - Abruf der erzeugten Vertrags-/Ausleih-PDFs
-- Berechtigungspruefung beim Zugriff
-- Integritaetspruefung (Hash-Verify)
+- Berechtigungsprüfung beim Zugriff
+- Integritätsprüfung (Hash-Verify)
 
 ### 4.5 Einstellungen
 Pfad: `/settings`
 
 Typische Bereiche:
-- Leihdauer/Verlaengerungsregeln
+- Leihdauer/Verlängerungsregeln
 - Signatur- und Dokumentoptionen
 - Reminder-/E-Mail-bezogenes Verhalten
 
@@ -284,15 +284,15 @@ Umfasst u. a.:
 - Sicherheitsrichtlinien (inkl. 2FA-Pflicht je Rolle)
 - erweitertes User-Management
 - Jobs & Cron-Transparenz:
-  - Laufhistorie fuer Reminder-/Cleanup-Jobs
+  - Laufhistorie für Reminder-/Cleanup-Jobs
   - inkl. detaillierter Ergebnisdaten pro Lauf (JSON)
-  - manuelles Triggern nur ausserhalb Demo-Modus
+  - manuelles Triggern nur außerhalb Demo-Modus
 
 ### 4.7 Nutzer-Sicherheitsbereich
 Pfad: `/account-security`
 
 Funktionen:
-- aktive Sessions/Geraete einsehen
+- aktive Sessions/Geräte einsehen
 - einzelne Sessions widerrufen
 - 2FA (TOTP, E-Mail) und Passkey-Funktionen
 
@@ -303,7 +303,7 @@ Funktionen:
 ### 5.1 Ziele
 - minimale Reibung im operativen Prozess
 - kamera-zentrierte Bedienung
-- klare visuelle Rueckmeldung bei erfolgreichem/fehlgeschlagenem Scan
+- klare visuelle Rückmeldung bei erfolgreichem/fehlgeschlagenem Scan
 
 ### 5.2 Relevante Pfade
 - `/pwa`
@@ -316,23 +316,23 @@ Funktionen:
 
 ### 5.3 Standard-Ausleihprozess
 1. Desktop erstellt Ausleih-Session und zeigt QR/Deep-Link
-2. Mobilgeraet oeffnet Session direkt via Token-Link oder QR
-3. Scan der Geraete in die laufende Session
-4. Validierung (existiert, verfuegbar, nicht doppelt)
+2. Mobilgerät öffnet Session direkt via Token-Link oder QR
+3. Scan der Geräte in die laufende Session
+4. Validierung (existiert, verfügbar, nicht doppelt)
 5. Signatur durch ausleihende Person
 6. Finalisierung inkl. PDF-Erstellung und optional E-Mail-Versand
 
 Hinweis:
-- Der E-Mail-Versand aus der PWA funktioniert ohne separates PWA-Login ueber den aktiven Session-Token (serverseitig validiert gegen die zugehoerige Ausleih-Session).
+- Der E-Mail-Versand aus der PWA funktioniert ohne separates PWA-Login über den aktiven Session-Token (serverseitig validiert gegen die zugehörige Ausleih-Session).
 
-### 5.4 Rueckgabeprozess (auch Desktop-only moeglich)
-- Rueckgabe-Session starten
+### 5.4 Rückgabeprozess (auch Desktop-only möglich)
+- Rückgabe-Session starten
 - Artikel scannen
-- Vollstaendigkeitspruefung
-- Abschluss + optionale Bestaetigungsmail
+- Vollständigkeitsprüfung
+- Abschluss + optionale Bestätigungsmail
 
 ### 5.5 PWA-Reset
-Funktion vorhanden, um lokale Session-/Cache-Zustaende zurueckzusetzen und neuen Vorgang sauber zu starten.
+Funktion vorhanden, um lokale Session-/Cache-Zustände zurückzusetzen und neuen Vorgang sauber zu starten.
 
 ---
 
@@ -346,12 +346,12 @@ Funktion vorhanden, um lokale Session-/Cache-Zustaende zurueckzusetzen und neuen
 ### 6.2 Session-Token
 - kryptografisch starke, nicht erratbare Tokens
 - zeitlich begrenzt
-- serverseitig gegen Status/Gueltigkeit geprueft
+- serverseitig gegen Status/Gültigkeit geprüft
 - nach Abschluss/Abbruch invalidierbar
 
-### 6.3 Verfuegbarkeit
-- Ausleihkonflikte werden anhand Zeitraum geprueft
-- nicht finalisierte/abgebrochene Sessions duerfen Verfuegbarkeit nicht dauerhaft blockieren
+### 6.3 Verfügbarkeit
+- Ausleihkonflikte werden anhand Zeitraum geprüft
+- nicht finalisierte/abgebrochene Sessions dürfen Verfügbarkeit nicht dauerhaft blockieren
 
 ---
 
@@ -360,11 +360,11 @@ Funktion vorhanden, um lokale Session-/Cache-Zustaende zurueckzusetzen und neuen
 ### 7.1 Signaturdaten
 Bei Signatur werden u. a. erfasst:
 - Zeitstempel (UTC)
-- ausfuehrender Nutzer (Operator/abwickelnde Person)
+- ausführender Nutzer (Operator/abwickelnde Person)
 - ausleihende Person (Kunde)
 - Artikelkontext
 - User-Agent
-- IP (falls verfuegbar)
+- IP (falls verfügbar)
 
 ### 7.2 Dokumenterzeugung
 - serverseitige PDF-Generierung
@@ -372,12 +372,12 @@ Bei Signatur werden u. a. erfasst:
 - Darstellung von Kunde, Zeitraum, Artikel, abwickelnde Person
 - Signaturabbild wird in Dokument eingebettet
 
-### 7.3 Integritaet und Nachvollziehbarkeit
+### 7.3 Integrität und Nachvollziehbarkeit
 - Dokumenthash wird gespeichert
-- Dokumentpfad und Metadaten werden mit Loan verknuepft
+- Dokumentpfad und Metadaten werden mit Loan verknüpft
 - Audit-Event `documentCreated`/`documentViewed`
 
-Hinweis: Technische Hash-Details muessen nicht zwingend im sichtbaren Kundentext erscheinen, bleiben aber systemseitig fuer Revisionszwecke vorhanden.
+Hinweis: Technische Hash-Details müssen nicht zwingend im sichtbaren Kundentext erscheinen, bleiben aber systemseitig für Revisionszwecke vorhanden.
 
 ---
 
@@ -390,8 +390,8 @@ Funktionen:
   - Mahngebühren für Stufe 2/3 zentral in `Policy` konfigurierbar
   - Cooldown zwischen Mahnstufen-Mails (Stunden) konfigurierbar
 - Versand von Vertrags-/Ausleihdokumenten
-- Rueckgabe-Bestaetigung optional
-- Reservierungsbestaetigung (bei Anlage)
+- Rückgabe-Bestätigung optional
+- Reservierungsbestätigung (bei Anlage)
 - Abhol-Erinnerung 24h vor Reservierungsstart
 - 07:00 Dienst-Übersicht an definierte Dienstperson + Vertretung
 - SMTP-Test im Adminbereich
@@ -405,7 +405,7 @@ Demo-Hinweis:
 ## 8.1 Cleanup-Strategie (DB-Hygiene / Retention)
 
 Ziel:
-- regelmaessige Bereinigung von kurzlebigen und veralteten Datensaetzen
+- regelmäßige Bereinigung von kurzlebigen und veralteten Datensätzen
 - stabile Performance bei langen Laufzeiten
 - klare Aufbewahrungsfenster statt unbegrenztem Wachstum
 
@@ -413,51 +413,51 @@ Implementierung:
 - zentraler Cleanup-Job: `runCleanup` in `src/lib/jobs/run-cleanup.ts`
 - API-Trigger: `POST /api/cron/cleanup`
 - CLI-Trigger: `npm run cron:cleanup` (optional `-- --dry-run`)
-- parallele Ausfuehrungen werden via PostgreSQL Advisory Lock verhindert
+- parallele Ausführungen werden via PostgreSQL Advisory Lock verhindert
 
-Aufraeumregeln (konfigurierbar per ENV):
+Aufräumregeln (konfigurierbar per ENV):
 - Auth-Login-Tokens (abgelaufen/alt)
-- User-Sessions (abgelaufen oder widerrufen, aelter als Retention)
+- User-Sessions (abgelaufen oder widerrufen, älter als Retention)
 - Shop-Sessions und OTP-Challenges (abgelaufen/alt)
 - Loan-/Return-Sessions (abgelaufen oder abgeschlossen/storniert und alt)
-- alte stornierte/abgelehnte Reservierungen ohne aktive Pickup-Verknuepfung
-- alte `EmailLog`- und `AuditLog`-Eintraege
+- alte stornierte/abgelehnte Reservierungen ohne aktive Pickup-Verknüpfung
+- alte `EmailLog`- und `AuditLog`-Einträge
 - verwaiste Dokumente (`Document` ohne Loan-Referenz) inkl. File-Delete im Storage
-- alte Demo-Mapping-Eintraege (`SystemSetting` mit `demo.email.*`)
+- alte Demo-Mapping-Einträge (`SystemSetting` mit `demo.email.*`)
 
 Empfohlene Job-Frequenz:
 - Produktion: alle 6h (`0 */6 * * *`)
 - Demo: stündlich (`0 * * * *`)
-- fuer dry-run Monitoring zusaetzlich taeglich ein Reportlauf
+- für dry-run Monitoring zusätzlich täglich ein Reportlauf
 
 Sicherheit beim Trigger:
 - entweder als eingeloggter `ADMIN`
-- oder per `Authorization: Bearer <CRON_TOKEN>` (fuer externe Scheduler)
+- oder per `Authorization: Bearer <CRON_TOKEN>` (für externe Scheduler)
 
 ---
 
 ## 9. Self-Service
 
-Der interne Self-Service-Bereich (`/self-service`) ist fuer `ADMIN` und `MANAGER` verfuegbar.
+Der interne Self-Service-Bereich (`/self-service`) ist für `ADMIN` und `MANAGER` verfügbar.
 Funktionen:
 - Einsicht laufender Ausleihen aus interner Perspektive
-- Verlaengerung im Rahmen der Policy
+- Verlängerung im Rahmen der Policy
 
-Fuer `USER` gilt stattdessen:
-- Zugriff auf den internen Shop (`/shop`) fuer Reservierungsanfragen
+Für `USER` gilt stattdessen:
+- Zugriff auf den internen Shop (`/shop`) für Reservierungsanfragen
 - Zugriff auf Kontosicherheit (`/account-security`)
 
-### 9.1 Oeffentliche Shop-Artikel-Details
-- Oeffentliche Detailseite pro Artikel: `/shop/articles/[id]`
+### 9.1 Öffentliche Shop-Artikel-Details
+- Öffentliche Detailseite pro Artikel: `/shop/articles/[id]`
 - Enthalten: Stammdaten, Beschreibung, technische Kategorie, Galerie
 - Shop-Listenansicht verlinkt direkt auf die jeweilige Detailseite
-- Bilder werden ueber oeffentliche, cachebare Bildroute ausgeliefert
+- Bilder werden über öffentliche, cachebare Bildroute ausgeliefert
 
 ---
 
 ## 10. Datenmodell (Auszug)
 
-Wichtige Entitaeten:
+Wichtige Entitäten:
 - `Category`, `ArticleCategory`, `Article`, `Customer`
 - `Loan`, `LoanItem`
 - `LoanSession`, `LoanSessionItem`
@@ -490,27 +490,27 @@ Referenz: `prisma/schema.prisma`
 
 - serverseitige Zod-Validierung
 - rollenbasiertes Authorization-Mapping pro Endpoint
-- Rate-Limiting fuer kritische Pfade (Auth, OTP, Scan, Finalize, Public Reservation-Endpunkte)
+- Rate-Limiting für kritische Pfade (Auth, OTP, Scan, Finalize, Public Reservation-Endpunkte)
 - Passwort-Hashing mit `argon2id` (inkl. Legacy-Migration)
-- 2FA (E-Mail/TOTP) + Passkey-Unterstuetzung
+- 2FA (E-Mail/TOTP) + Passkey-Unterstützung
 - 2FA-Pflicht je Rolle durch Super-Admin konfigurierbar
-- Verschluesselung sensibler Felder at-rest
+- Verschlüsselung sensibler Felder at-rest
 - Audit-Log mit Hash-Chain zur Manipulationserkennung
-- geschuetzter Zugriff auf Dokumente
-- tokenisierte PWA-Endpunkte mit Ablauf- und Statuspruefung
-- Request-Body-Limit fuer JSON-Payloads (`MAX_JSON_BODY_BYTES`)
+- geschützter Zugriff auf Dokumente
+- tokenisierte PWA-Endpunkte mit Ablauf- und Statusprüfung
+- Request-Body-Limit für JSON-Payloads (`MAX_JSON_BODY_BYTES`)
 - lokale Dokumentzugriffe auf `LOCAL_DOCUMENT_DIR` begrenzt
-- Secrets in Super-Admin-GETs maskiert; Speicherung von SMTP/OIDC/SAML/LDAP-Secrets verschluesselt
+- Secrets in Super-Admin-GETs maskiert; Speicherung von SMTP/OIDC/SAML/LDAP-Secrets verschlüsselt
 
 Empfohlene laufende Härtung:
 - strikte Secret-Rotation
-- Monitoring/Alerting fuer Security-Events
-- regelmaessige Restore-Tests (DB + Dokumente)
+- Monitoring/Alerting für Security-Events
+- regelmäßige Restore-Tests (DB + Dokumente)
 - SAST/Dependency-Scanning in CI
 
 ---
 
-## 12. API-Uebersicht (wichtige Gruppen)
+## 12. API-Übersicht (wichtige Gruppen)
 
 ### 12.1 Auth
 - `/api/auth/[...nextauth]`
@@ -531,7 +531,7 @@ Empfohlene laufende Härtung:
 - `/api/checkout/desktop`
 - `/api/loans`
 
-### 12.4 Rueckgabe
+### 12.4 Rückgabe
 - `/api/return-sessions/*`
 
 ### 12.5 Dokumente
@@ -624,11 +624,11 @@ docker compose --env-file demo.env.example up --build -d
 - App intern: Port 3001
 - PostgreSQL: Port 5432
 
-### 14.3 LAN-Test mit Mobilgeraet
-- Mobilgeraet im gleichen Netzwerk
+### 14.3 LAN-Test mit Mobilgerät
+- Mobilgerät im gleichen Netzwerk
 - URL mit LAN-IP verwenden
 - bei Self-Signed Zertifikat Zertifikat vertrauen
-- Kamera benoetigt HTTPS-Kontext
+- Kamera benötigt HTTPS-Kontext
 
 ---
 
@@ -637,25 +637,25 @@ docker compose --env-file demo.env.example up --build -d
 Ziele:
 - schnelle Produktdemo mit realistischem Flow
 - isolierte Demo-Daten
-- automatisches Aufraeumen via TTL
+- automatisches Aufräumen via TTL
 
 Eigenschaften:
 - vordefinierte Rollen und Testdaten
 - demo-spezifische Scanlinks im Ausleihkontext
 - optional SMTP auch in Demo aktivierbar
-- Demo-Zugang erfolgt ueber E-Mail-OTP-Gate auf `/demo/access` (vor regulaerem Login)
+- Demo-Zugang erfolgt über E-Mail-OTP-Gate auf `/demo/access` (vor regulärem Login)
 - nach OTP-Verifikation ist der Zugang auf die verifizierte Demo-E-Mail gebunden
-- alle Mail-Aktionen der in dieser Session erzeugten Ausleih-/Rueckgabe-Sessions werden auf diese Demo-E-Mail umgeleitet
-- Zuordnung ist session-isoliert, damit parallele Demo-Nutzer sich nicht gegenseitig Daten oder Mail-Ziele ueberschreiben
+- alle Mail-Aktionen der in dieser Session erzeugten Ausleih-/Rückgabe-Sessions werden auf diese Demo-E-Mail umgeleitet
+- Zuordnung ist session-isoliert, damit parallele Demo-Nutzer sich nicht gegenseitig Daten oder Mail-Ziele überschreiben
 - bei leerem Demo-Bestand wird automatisch ein Grundkatalog erzeugt (Kategorien, Artikelkategorien, umfangreicher Artikelbestand)
 - pro Demo-E-Mail werden automatisch Demo-Kunden erzeugt, damit Ausleihen sofort testbar sind
-- OTP-Whitelist erfolgt ueber Policy (`allowedOtpDomains`, `allowedOtpEmails`), aktuell inkl. `felgner.ch` und `phtg.ch`
+- OTP-Whitelist erfolgt über Policy (`allowedOtpDomains`, `allowedOtpEmails`), aktuell inkl. `felgner.ch` und `phtg.ch`
 
 ---
 
 ## 16. Bekannte Betriebsregeln
 
-- Nach `NEXTAUTH_SECRET`-Aenderung alte Browser-Sessions loeschen (sonst JWT-Fehler moeglich)
+- Nach `NEXTAUTH_SECRET`-Änderung alte Browser-Sessions löschen (sonst JWT-Fehler möglich)
 - Bei massiven Datenmengen auf Indizes, Pagination und serverseitiges Filtering achten
 - QR-/Kamera-Funktionen nur mit stabilem HTTPS und Berechtigungen nutzen
 
@@ -665,29 +665,29 @@ Eigenschaften:
 
 - feinere BI-Statistiken (Nutzungsmuster, Auslastung, Engpassprognosen)
 - erweiterte Reporting-Exporte
-- Mandantenfaehigkeit (falls benoetigt)
+- Mandantenfähigkeit (falls benötigt)
 - revisionssichere Dokumentensignierung mit externer Signaturinfrastruktur (optional)
 
 ---
 
-## 18. Wartungsregel fuer künftige Anpassungen
+## 18. Wartungsregel für künftige Anpassungen
 
-Diese Datei ist **Pflichtbestandteil der Entwicklung**. Bei jeder Aenderung gilt:
+Diese Datei ist **Pflichtbestandteil der Entwicklung**. Bei jeder Änderung gilt:
 1. Feature implementieren
-2. Tests/Lint ausfuehren
+2. Tests/Lint ausführen
 3. **`docs/README.md` aktualisieren**
 4. erst dann PR abschliessen
 
-Empfehlung fuer PR-Template:
+Empfehlung für PR-Template:
 - [ ] Doku in `docs/README.md` aktualisiert
 - [ ] Neue ENV-Variablen dokumentiert
-- [ ] API-Aenderungen dokumentiert
+- [ ] API-Änderungen dokumentiert
 
 ### 18.1 Public-Docs Sync (GitHub)
 
-Das private Hauptrepo publiziert die Doku automatisch in ein separates, oeffentliches Repo:
+Das private Hauptrepo publiziert die Doku automatisch in ein separates, öffentliches Repo:
 - Workflow: `.github/workflows/publish-public-docs.yml`
-- Trigger: Push auf `main` bei Aenderungen unter `docs/**`
+- Trigger: Push auf `main` bei Änderungen unter `docs/**`
 - Zielrepo (Default): `bjoernch/EquipTrackr-docs`
 
 Erforderlich:
@@ -697,7 +697,7 @@ Erforderlich:
 Verhalten:
 - Inhalt von `docs/` wird in das Public-Repo gespiegelt
 - `docs/README.md` wird als `README.md` im Public-Repo bereitgestellt
-- Push erfolgt nur bei tatsaechlichen Dateiaenderungen
+- Push erfolgt nur bei tatsächlichen Dateiänderungen
 
 ---
 

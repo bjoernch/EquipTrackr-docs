@@ -696,6 +696,22 @@ Empfehlung fuer PR-Template:
 - [ ] Neue ENV-Variablen dokumentiert
 - [ ] API-Aenderungen dokumentiert
 
+### 18.1 Public-Docs Sync (GitHub)
+
+Das private Hauptrepo publiziert die Doku automatisch in ein separates, oeffentliches Repo:
+- Workflow: `.github/workflows/publish-public-docs.yml`
+- Trigger: Push auf `main` bei Aenderungen unter `docs/**`
+- Zielrepo (Default): `bjoernch/EquipTrackr-docs`
+
+Erforderlich:
+- Secret `DOCS_PUBLISH_TOKEN` (PAT mit Schreibrecht auf das Public-Docs-Repo)
+- Variable `DOCS_PUBLISH_REPO` (optional, z. B. `owner/repo`)
+
+Verhalten:
+- Inhalt von `docs/` wird in das Public-Repo gespiegelt
+- `docs/README.md` wird als `README.md` im Public-Repo bereitgestellt
+- Push erfolgt nur bei tatsaechlichen Dateiaenderungen
+
 ---
 
 ## 24. Skalierung, Referenzen, Monitoring, Backup (aktuell)

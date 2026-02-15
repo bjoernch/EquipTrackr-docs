@@ -2,6 +2,8 @@
 
 Diese Dokumentation ist die verbindliche Referenz für das gesamte System (Desktop-App, PWA, API, Sicherheit, Betrieb).
 
+Hinweis: Alle Demo-spezifischen Inhalte sind zentral in `/docs/DEMO.md` dokumentiert (inkl. separater Mindmap).
+
 ## 1. Produktüberblick
 
 EquipTrackr ist eine produktionsreife Ausleih- und Inventar-Webapp für Geräteparks mit klar getrennter Bedienlogik:
@@ -49,7 +51,6 @@ flowchart LR
     M1["PWA Ausleihe<br/>Setup-QR, Artikelscan, Signatur, Abschluss"]
     M2["PWA Rückgabe<br/>Rückgabe-QR, Scan, Teil-/Vollrückgabe"]
     S1["Interner/Öffentlicher Shop<br/>Katalog, Verfügbarkeit, Reservierungsanfrage"]
-    DM["Demo Session Manager<br/>aktive Sessions, IP, E-Mail, per-User Reset"]
   end
 
   subgraph Backend["Next.js Backend (API + Business-Logik)"]
@@ -61,7 +62,7 @@ flowchart LR
     A6["Document Access<br/>Hash Verify, ACL, Download/Preview"]
     A7["Mail Engine<br/>Reminder, Mahnung, Reservierung, Rückgabe, Vertragsmail"]
     A8["Cron Jobs<br/>Reminder 48h/24h, Dunning, Cleanup, Morning Digest"]
-    A9["Audit + Security<br/>Audit Hash-Chain, Rate Limit, Demo-Isolation"]
+    A9["Audit + Security<br/>Audit Hash-Chain, Rate Limit, RBAC"]
   end
 
   subgraph Storage["Persistenz / Storage"]
@@ -84,8 +85,6 @@ flowchart LR
   M2 --> A2
   S1 --> A3
   S1 --> A2
-  DM --> A9
-
   A1 --> P1
   A2 --> P1
   A3 --> P1
@@ -286,7 +285,7 @@ Umfasst u. a.:
 - Jobs & Cron-Transparenz:
   - Laufhistorie für Reminder-/Cleanup-Jobs
   - inkl. detaillierter Ergebnisdaten pro Lauf (JSON)
-  - manuelles Triggern nur außerhalb Demo-Modus
+  - manuelles Triggern mit Rollen- und Sicherheitsprüfung
 
 ### 4.7 Nutzer-Sicherheitsbereich
 Pfad: `/account-security`
@@ -397,9 +396,6 @@ Funktionen:
 - SMTP-Test im Adminbereich
 - Logging mit Retry-Informationen
 
-Demo-Hinweis:
-- Auch in Demo kann SMTP serverseitig aktiv sein, falls ENV gesetzt.
-
 ---
 
 ## 8.1 Cleanup-Strategie (DB-Hygiene / Retention)
@@ -423,11 +419,9 @@ Aufräumregeln (konfigurierbar per ENV):
 - alte stornierte/abgelehnte Reservierungen ohne aktive Pickup-Verknüpfung
 - alte `EmailLog`- und `AuditLog`-Einträge
 - verwaiste Dokumente (`Document` ohne Loan-Referenz) inkl. File-Delete im Storage
-- alte Demo-Mapping-Einträge (`SystemSetting` mit `demo.email.*`)
 
 Empfohlene Job-Frequenz:
 - Produktion: alle 6h (`0 */6 * * *`)
-- Demo: stündlich (`0 * * * *`)
 - für dry-run Monitoring zusätzlich täglich ein Reportlauf
 
 Sicherheit beim Trigger:
@@ -601,9 +595,8 @@ Empfohlene laufende Härtung:
 - `SMTP_FROM`
 
 ### 13.5 Demo
-- `DEMO_MODE`
-- `DEMO_DATA_TTL_MINUTES`
-- `DEMO_SMTP_*`
+Alle Demo-ENVs und Demo-Betriebsregeln sind separat dokumentiert in:
+- `/docs/DEMO.md`
 
 Referenzdateien:
 - `.env.example`
@@ -634,22 +627,8 @@ docker compose --env-file demo.env.example up --build -d
 
 ## 15. Demo-Betrieb
 
-Ziele:
-- schnelle Produktdemo mit realistischem Flow
-- isolierte Demo-Daten
-- automatisches Aufräumen via TTL
-
-Eigenschaften:
-- vordefinierte Rollen und Testdaten
-- demo-spezifische Scanlinks im Ausleihkontext
-- optional SMTP auch in Demo aktivierbar
-- Demo-Zugang erfolgt über E-Mail-OTP-Gate auf `/demo/access` (vor regulärem Login)
-- nach OTP-Verifikation ist der Zugang auf die verifizierte Demo-E-Mail gebunden
-- alle Mail-Aktionen der in dieser Session erzeugten Ausleih-/Rückgabe-Sessions werden auf diese Demo-E-Mail umgeleitet
-- Zuordnung ist session-isoliert, damit parallele Demo-Nutzer sich nicht gegenseitig Daten oder Mail-Ziele überschreiben
-- bei leerem Demo-Bestand wird automatisch ein Grundkatalog erzeugt (Kategorien, Artikelkategorien, umfangreicher Artikelbestand)
-- pro Demo-E-Mail werden automatisch Demo-Kunden erzeugt, damit Ausleihen sofort testbar sind
-- OTP-Whitelist erfolgt über Policy (`allowedOtpDomains`, `allowedOtpEmails`), aktuell inkl. `felgner.ch` und `phtg.ch`
+Demo-spezifische Architektur, Sicherheit, ENVs und Betriebsabläufe sind vollständig in
+`/docs/DEMO.md` ausgelagert.
 
 ---
 
@@ -730,33 +709,10 @@ Neue Endpunkte:
   - führt Verlängerung nur aus, wenn der Live-Check erfolgreich ist
   - schreibt Audit-Log `loanUpdated` mit `operation=extendLoan`
 
-### 24.9 Demo-Read-Only für Einstellungen
+### 24.9 Demo-Spezifika
 
-Im Demo-Modus ist `PUT /api/settings` schreibgeschützt (HTTP 403).
-
-Serverseitige Steuerung erfolgt über:
-- `DEMO_POLICY_OVERRIDES_JSON`
-
-Beispiel:
-```json
-{"defaultLoanDays":7,"maxLoanDays":30,"allowExtension":true}
-```
-
-Die Overrides werden bei `GET /api/settings` (und in der Super-Admin-Systemansicht) auf die Policy gemerged und im UI als read-only angezeigt.
-
-### 24.10 Demo-Placeholderbilder für Artikel
-
-Im Demo-Modus erhalten Artikel ohne eigene Galerie automatisch ein Platzhalterbild.
-
-- 3 feste Varianten, rotierend über alle Artikel
-- Quellen:
-  - `/demo/placeholders/demo-1.svg`
-  - `/demo/placeholders/demo-2.svg`
-  - `/demo/placeholders/demo-3.svg`
-- Datenpfad in `ArticleImage.path`: `placeholder://demo-1..3`
-- Öffentlicher Abruf wird in `GET /api/public/article-images/:id` auf die statischen SVGs umgeleitet.
-
-Antwort enthält jeweils `nextCursor`.
+Alle Demo-spezifischen Betriebsregeln, Endpunkte und Konfigurationsdetails sind zentral
+in `/docs/DEMO.md` dokumentiert.
 
 ### 24.11 Ausleihe erstellen: Schritt 2 ist editierbar (Live-Sync)
 
@@ -781,28 +737,6 @@ Der Setup-QR im Desktop ist als vollwertiger HTTPS-Deep-Link nutzbar.
 - Kein erzwungener manueller URL-Einstieg in der PWA nötig.
 - Danach erfolgt direkt der Geräte-Scanflow.
 
-### 24.13 Demo-Mode: Schreibschutz für zentrale Admin-Bereiche
-
-Im Demo-Modus sind zentrale Systemeinstellungen bewusst gesperrt:
-- Policy-Settings nur lesbar
-- Super-Admin-Sicherheits-/SMTP-Konfigurationen nur lesbar
-- Steuerung erfolgt über ENV auf Serverebene
-
-Ziel:
-- reproduzierbare, sichere Demo ohne Konfigurations-Drift
-- trotzdem realistische UI-Darstellung mit echten Betriebswerten
-
-### 24.14 Interessenten-/Sales-Sicht: kompletter Funktionsumfang
-
-Für Vorführungen und Interessenten sind folgende Kernpfade vollständig dokumentiert und abbildbar:
-- Inventarverwaltung inkl. Kategorien, Artikelzustand, Galerie, Kalender
-- Reservierung mit Verfügbarkeitsprüfung im Zeitraum
-- Übergang Reservierung -> Pickup (PWA oder Desktop)
-- PWA-Scan, spontane Zusatzartikel, Signatur, Vertrags-PDF
-- Teilrückgabe und Vollrückgabe inkl. Mail-Bestätigung
-- Mahnlauf/Reminder, Report- und Job-Transparenz
-- Rollen- und Sicherheitsmodell inkl. 2FA/Passkey
-
 ### 24.15 Go-Live-Checkliste (Produktion)
 
 Vor produktivem Betrieb:
@@ -817,23 +751,6 @@ Vor produktivem Betrieb:
 6. Rollenmodell und 2FA-Pflicht je Rolle prüfen
 7. Dokument-Storage (local/S3) inkl. Zugriffsrechten verifizieren
 8. Monitoring/Alerts für Mailfehler, Jobfehler und Login-Anomalien einschalten
-
-### 24.16 Demo Session Manager (aktive Demo-Sessions)
-
-Für Demo-Betrieb gibt es eine separate, ENV-geschützte Session-Manager-Oberfläche:
-
-- UI: `/demo/session-manager`
-- API: `/api/public/demo-session-manager`
-- nur aktiv bei `DEMO_MODE=true`
-- Zugriff via Basic Auth aus ENV:
-  - `DEMO_SESSION_MANAGER_USERNAME`
-  - `DEMO_SESSION_MANAGER_PASSWORD`
-
-Funktionen:
-- zeigt aktive Demo-Nutzersessions inkl. Benutzer, Rolle, E-Mail, IP, Last-Seen, Expiry
-- zeigt aktive Loan-/Return-Sessions je Demo-E-Mail
-- zeigt pro Demo-E-Mail Objektzähler (Kunden, Reservierungen, Ausleihen etc.)
-- erlaubt „Alle Demo-Daten löschen“ pro Demo-E-Mail (inkl. Session-Mappings, Reservierungen, Loans, Dokumentbezug, Shop-Sessions)
 
 ### 24.3 PWA Live-Update via SSE
 

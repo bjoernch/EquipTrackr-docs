@@ -1,4 +1,4 @@
-# LendingSystem - Gesamtdokumentation
+# EquipTrackr - Gesamtdokumentation
 
 Diese Dokumentation ist die verbindliche Referenz fuer das gesamte System (Desktop-App, PWA, API, Sicherheit, Betrieb).
 
@@ -17,7 +17,7 @@ Checkliste pro Aenderung:
 
 ## 1. Produktueberblick
 
-LendingSystem ist eine produktionsreife Ausleih- und Inventar-Webapp fuer Geraeteparks mit klar getrennter Bedienlogik:
+EquipTrackr ist eine produktionsreife Ausleih- und Inventar-Webapp fuer Geraeteparks mit klar getrennter Bedienlogik:
 - Desktop-Hauptsystem fuer Verwaltung, Planung, Ausleih-Setup, Reporting und Administration
 - Touch-optimierte PWA fuer operative Prozesse (QR-Scan, Signatur, Rueckgabe)
 

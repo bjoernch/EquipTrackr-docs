@@ -2,19 +2,6 @@
 
 Diese Dokumentation ist die verbindliche Referenz fuer das gesamte System (Desktop-App, PWA, API, Sicherheit, Betrieb).
 
-## Dokumentationspflicht (verbindlich)
-
-Jede funktionale, technische oder sicherheitsrelevante Aenderung am System **muss im gleichen Pull Request** in dieser Datei nachgefuehrt werden.
-
-Checkliste pro Aenderung:
-- Betroffener Bereich in dieser Doku aktualisiert
-- Neue ENV-Variablen dokumentiert
-- API-Aenderungen inkl. Rollen/Berechtigung dokumentiert
-- UI-Flow-Aenderungen in Desktop/PWA beschrieben
-- Sicherheitsauswirkungen erfasst
-
----
-
 ## 1. Produktueberblick
 
 EquipTrackr ist eine produktionsreife Ausleih- und Inventar-Webapp fuer Geraeteparks mit klar getrennter Bedienlogik:

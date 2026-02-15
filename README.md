@@ -241,7 +241,8 @@ Funktionen:
 ### 4.3 Ausleihen
 Pfade:
 - `/loan-create` (Ausleihe anlegen/planen)
-- `/loans` (Ausleihübersicht, Details, Status)
+- `/loans` (Ausleihübersicht)
+- `/loans/[id]` (Ausleih-Details)
 
 Wichtige Funktionen:
 - Ausleihzeitraum mit Von/Bis
@@ -252,7 +253,7 @@ Wichtige Funktionen:
   - inkl. belegender Zeiträume aus Ausleihen, aktiven Ausleih-Sessions und Reservierungen
 - Artikelplanung und Session-QR für PWA
 - Desktop-only Abschluss als Alternative möglich
-- In der Detailansicht von `/loans`:
+- In der Detailansicht von `/loans/[id]`:
   - Verlängerung per interaktivem Kalenderfeld (`datetime-local`) mit Live-Verfügbarkeitsprüfung
   - Sofortige Blockeranzeige, wenn Verlängerung im Zielzeitraum nicht möglich ist (inkl. betroffener Artikel)
   - Teilrückgabe per Desktop (einzelne Artikel entfernen) oder per PWA-Rückgabe-Session mit Partial-Return
@@ -649,22 +650,9 @@ Demo-spezifische Architektur, Sicherheit, ENVs und Betriebsabläufe sind vollst�
 
 ---
 
-## 18. Wartungsregel für künftige Anpassungen
+## 18. Public-Docs Sync (GitHub, optional)
 
-Diese Datei ist **Pflichtbestandteil der Entwicklung**. Bei jeder Änderung gilt:
-1. Feature implementieren
-2. Tests/Lint ausführen
-3. **`docs/README.md` aktualisieren**
-4. erst dann PR abschliessen
-
-Empfehlung für PR-Template:
-- [ ] Doku in `docs/README.md` aktualisiert
-- [ ] Neue ENV-Variablen dokumentiert
-- [ ] API-Änderungen dokumentiert
-
-### 18.1 Public-Docs Sync (GitHub)
-
-Das private Hauptrepo publiziert die Doku automatisch in ein separates, öffentliches Repo:
+Optional kann das private Hauptrepo die Doku automatisch in ein separates, öffentliches Repo publizieren:
 - Workflow: `.github/workflows/publish-public-docs.yml`
 - Trigger: Push auf `main` bei Änderungen unter `docs/**`
 - Zielrepo (Default): `bjoernch/EquipTrackr-docs`

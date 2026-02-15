@@ -41,6 +41,7 @@ mindmap
 - Nach Verifikation wird die Session auf die bestätigte Demo-E-Mail gebunden.
 - Alle erzeugten Demo-Daten (Kunden, Reservierungen, Ausleih-/Rückgabe-Sessions) bleiben auf diese E-Mail isoliert.
 - Mail-Aktionen im Demo-Kontext werden an diese Demo-E-Mail adressiert.
+- Standardmäßig erlaubte Demo-Domains (Whitelist) sind u. a. `felgner.ch` und `phtg.ch` (zusätzlich zu Beispielwerten) und können via Policy-Override/Seed angepasst werden.
 
 ## 3. Demo Session Manager
 
